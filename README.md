@@ -37,7 +37,7 @@
     - <img src="http://s2.googleusercontent.com/s2/favicons?domain_url=https://www.samsung.com/" width="16px" height="16px"> [Combination File Method (Samsung)](Bypassing%20FRP%20Lock/Combination%20File%20Method%20(Samsung).md)
     - <img src="http://s2.googleusercontent.com/s2/favicons?domain_url=https://online.mediatek.com/Public%20Documents/Forms/AllItems.aspx" width="16px" height="16px"> [Formatting FRP Partition (Mediatek)](Bypassing%20FRP%20Lock/Mediatek.md)
     - <img src="http://s2.googleusercontent.com/s2/favicons?domain_url=https://www.vivo.com/" width="16px" height="16px"> [VIVO EasyShare method (tested on Android 13)](https://www.youtube.com/watch?v=cC8wyIs4oY8)
--  [🔑 Forgot Password](Forgot%20password)
+- [🔑 Forgot Password](Forgot%20password)
     - <img src="http://s2.googleusercontent.com/s2/favicons?domain_url=https://www.samsung.com/" width="16px" height="16px"> [Factory Reset OneUI 3.x (Samsung)](Forgot%20Password/Factory_Reset_OneUI3.x.md)
     - <img src="http://s2.googleusercontent.com/s2/favicons?domain_url=https://www.realme.com/" width="16px" height="16px"> [Remove Lockscreen/Factory Reset Realme C21Y (Unisoc Spreadtrum)](Forgot%20Password/Remove_Lockscreen_Realme_C21Y.md)
     - <img src="http://s2.googleusercontent.com/s2/favicons?domain_url=https://www.sonymobile.com/" width="16px" height="16px"> [Bypassing My Xperia Theft Protection (Sony)](Forgot%20Password/Bypassing_My_Xperia_Theft_Protection.md)
@@ -45,6 +45,22 @@
     - ~~<img src="http://s2.googleusercontent.com/s2/favicons?domain_url=https://www.mi.com/" width="16px" height="16px"> [Bypassing Mi Account Lock (Temporary Solution) - Qualcomm SoC only](#)~~ (dead link)
     - <img src="http://s2.googleusercontent.com/s2/favicons?domain_url=https://www.oppo.com/" width="16px" height="16px"> [Finding Device Model Number When Phone is Locked (Oppo)](Forgot%20Password/Find-device-model-number.md)
     - ~~<img src="http://s2.googleusercontent.com/s2/favicons?domain_url=https://www.mi.com/" width="16px" height="16px"> [Modified MIUI Firmware for Bypassing Mi Account Lock) - Qualcomm SoC only](#)~~ (dead link)
+
+- [🔓 External Open-Source Tools](frp_bypass_tool)
+    - [FRP Bypass Tool (Python)](frp_bypass_tool) - Custom multi-brand toolkit.
+    - [nPhoneKIT](nPhoneKIT) - Safe, free, open-source Android unlock toolkit.
+    - [mtkclient](mtkclient) - MediaTek exploit tool for BROM, bootloader unlock, and flashing.
+    - [FRP Freedom](frp-freedom) - Comprehensive FRP bypass tool.
+    - [Bruteforce Bootloader Unlocker](Bruteforce-Bootloader-Unlocker) - Fastboot brute-force script.
+    - [Android Root Helper](android_root_helper) - Automated rooting assistant.
+    - [Awesome Android Root](awesome-android-root) - Curated list of 430+ root apps and guides.
+    - [UnlockerPhone Tool 2026](UnlockerPhone-Tool-2026) - Multi-brand unlock toolkit.
+    - [RomTools](RomTools) - ROM development CLI (unpack/repack).
+    - [Anarchy-Droid](Anarchy-Droid) - ROM installation assistant.
+    - [Objection](objection) - Runtime mobile exploration (Frida-based).
+    - [Android FRP Bypass Guide](android-frp-bypass-guide) - Complete guides for multiple brands.
+    - [FRP2026 Pro](frp2026.github.io) - Verified access methods toolkit.
+
 - [⚙ Tweaks](Tweaks)
     - [Block Android OEMs Data Collection + Ads](Tweaks/Unified%20hosts.md)
     - [Build.prop Tweaks](Tweaks/Build.prop%20Tweaks.md)
