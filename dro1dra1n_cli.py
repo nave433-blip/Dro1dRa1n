@@ -66,7 +66,6 @@ def get_usb_devices():
     print(Fore.BLUE + Style.DIM + "    " + "-" * 40 + "\n")
 
 def print_logo():
-    # Green Droid with Umbrella in the Rain
     print(Fore.GREEN + r"""
               .        .        .        .
           .        .        .        .        .
@@ -86,7 +85,6 @@ def print_logo():
                   /       \     /       \
     """)
     
-    # Dro1dRa1n in Big Stylized Letters
     print(Fore.CYAN + Style.BRIGHT + r"""
       _____             _     _ ____         _           
      |  __ \           (_)   | |  _ \       (_)          
@@ -103,10 +101,12 @@ def print_logo():
 def print_fancy_menu():
     menu_items = [
         ("MODE", "Device Mode Manager"),
-        ("FRP", "FRP Bypass Tool"),
-        ("ROOT", "Rooting Assistant"),
-        ("MTK", "MediaTek Toolkit"),
-        ("BTLO", "Bootloader Unlock"),
+        ("FRP", "FRP Bypass Operations"),
+        ("ROOT", "Rooting & SuperUser"),
+        ("MTK", "MediaTek Universal Suite"),
+        ("BTLO", "Bootloader Unlock Suite"),
+        ("SERV", "Advanced Servicing (MDM/CSC/EFS)"),
+        ("PART", "Partition Manager (PIT/GPT)"),
         ("BBRC", "Baseband & Recovery"),
         ("ROM", "Custom ROM Tools"),
         ("RE", "Reverse Engineering"),
@@ -132,7 +132,6 @@ def mode_manager():
     print_logo()
     print(Fore.CYAN + Style.BRIGHT + "\n    [#] DEVICE MODE MANAGER")
     print(Fore.BLUE + Style.DIM + "    " + "=" * 60)
-    print(Fore.WHITE + "    Select a target mode to reboot the connected device:")
     
     modes = [
         ("Normal", "reboot"),
@@ -158,13 +157,71 @@ def mode_manager():
         if 0 <= idx < len(modes):
             name, cmd = modes[idx]
             print(Fore.GREEN + f"\n    [*] Attempting to reboot into {name}...")
-            full_cmd = f"adb {cmd}"
-            subprocess.run(full_cmd.split(), check=True)
+            subprocess.run(f"adb {cmd}".split(), check=True)
             print(Fore.GREEN + "    [+] Command sent successfully.")
         else:
             print(Fore.RED + "    [!] Invalid choice.")
     except Exception as e:
         print(Fore.RED + f"    [!] Error: {e}")
+    
+    time.sleep(2)
+
+def partition_manager():
+    clear_screen()
+    print_logo()
+    print(Fore.CYAN + Style.BRIGHT + "\n    [#] PARTITION MANAGER (ADB/FASTBOOT)")
+    print(Fore.BLUE + Style.DIM + "    " + "=" * 60)
+    
+    print(Fore.GREEN + "    [1] List All Partitions (ADB Root)")
+    print(Fore.GREEN + "    [2] Read Partition (Dump to .img)")
+    print(Fore.GREEN + "    [3] Erase Partition (Fastboot)")
+    print(Fore.GREEN + "    [4] Write Partition (Flash .img)")
+    print(Fore.GREEN + "    [B] Back")
+    
+    choice = input(Fore.YELLOW + "\n    Partition Selection > ").strip().lower()
+    
+    if choice == '1':
+        os.system("adb shell su -c 'ls -l /dev/block/bootdevice/by-name/'")
+    elif choice == '2':
+        name = input(Fore.WHITE + "    Enter partition name (e.g. boot, recovery, efs): ").strip()
+        os.system(f"adb shell su -c 'dd if=/dev/block/bootdevice/by-name/{name} of=/sdcard/{name}.img'")
+        os.system(f"adb pull /sdcard/{name}.img ./{name}_dump.img")
+    elif choice == '3':
+        name = input(Fore.WHITE + "    Enter partition name to ERASE: ").strip()
+        print(Fore.RED + f"    [!] WARNING: YOU ARE ABOUT TO ERASE {name}. ARE YOU SURE? (y/n)")
+        if input("    > ").lower() == 'y':
+            os.system(f"fastboot erase {name}")
+    elif choice == 'b':
+        return
+    
+    time.sleep(2)
+
+def advanced_servicing():
+    clear_screen()
+    print_logo()
+    print(Fore.CYAN + Style.BRIGHT + "\n    [#] ADVANCED SERVICING SUITE")
+    print(Fore.BLUE + Style.DIM + "    " + "=" * 60)
+    
+    print(Fore.GREEN + "    [1] Xiaomi: Reset Mi Cloud (ADB/Sideload)")
+    print(Fore.GREEN + "    [2] Samsung: Change CSC (Requires Modem Port)")
+    print(Fore.GREEN + "    [3] Samsung: Reset KnoxGuard / KG (Fix)")
+    print(Fore.GREEN + "    [4] Universal: Disable MDM / Admin Apps")
+    print(Fore.GREEN + "    [5] Samsung: Read PIT (Partition Info Table)")
+    print(Fore.GREEN + "    [B] Back")
+    
+    choice = input(Fore.YELLOW + "\n    Service Selection > ").strip().lower()
+    
+    if choice == '1':
+        print(Fore.YELLOW + "    [*] Clearing Mi Cloud activation data...")
+        os.system("adb shell pm clear com.xiaomi.account")
+        os.system("adb shell settings put global miui.activation_code ''")
+    elif choice == '4':
+        print(Fore.YELLOW + "    [*] Listing admin apps to disable...")
+        os.system("adb shell pm list packages -s | grep admin")
+        pkg = input(Fore.WHITE + "    Enter package name to disable: ").strip()
+        os.system(f"adb shell pm disable-user --user 0 {pkg}")
+    elif choice == 'b':
+        return
     
     time.sleep(2)
 
@@ -194,12 +251,8 @@ def baseband_recovery_tools():
         print(Fore.YELLOW + "    [*] Pulling EFS partition...")
         os.system("adb shell su -c 'dd if=/dev/block/bootdevice/by-name/efs of=/sdcard/efs.img'")
         os.system("adb pull /sdcard/efs.img ./efs_backup.img")
-    elif choice == '4':
-        img = input(Fore.WHITE + "    Enter path to modem/radio .img or .bin: ").strip()
-        if os.path.exists(img):
-            print(Fore.YELLOW + "    [!] Ensure device is in Bootloader/Fastboot mode.")
-            part = input(Fore.WHITE + "    Enter partition name (modem/radio): ").strip()
-            os.system(f"fastboot flash {part} {img}")
+    elif choice == 'b':
+        return
     
     time.sleep(2)
 
@@ -260,16 +313,20 @@ def main():
             os.system(f"python3 {os.path.join(BASE_DIR, 'mtkclient/mtk_gui.py')}")
         elif choice in ['5', 'btlo']:
             os.system(f"bash {os.path.join(BASE_DIR, 'Bruteforce-Bootloader-Unlocker/bootloader_unlocker')}")
-        elif choice in ['6', 'bbrc']:
+        elif choice in ['6', 'serv']:
+            advanced_servicing()
+        elif choice in ['7', 'part']:
+            partition_manager()
+        elif choice in ['8', 'bbrc']:
             baseband_recovery_tools()
-        elif choice in ['7', 'rom']:
+        elif choice in ['9', 'rom']:
             os.system(f"bash {os.path.join(BASE_DIR, 'RomTools/RomTools.sh')}")
-        elif choice in ['8', 're']:
+        elif choice in ['10', 're']:
             os.system("objection --help")
             input("\n    Press Enter to return...")
-        elif choice in ['9', 'hw']:
+        elif choice in ['11', 'hw']:
             show_hardware_info()
-        elif choice in ['10', 'updt']:
+        elif choice in ['12', 'updt']:
             auto_update()
             sys.path.append(os.path.join(BASE_DIR, 'frp_bypass_tool'))
             try:
@@ -280,7 +337,7 @@ def main():
             except ImportError:
                 print(Fore.RED + "    [-] Exploit fetcher core not found.")
             time.sleep(2)
-        elif choice in ['11', 'exit', 'q']:
+        elif choice in ['13', 'exit', 'q']:
             print(Fore.YELLOW + "\n    [!] Shutting down Dro1dRa1n. Happy hunting!")
             sys.exit(0)
         else:
