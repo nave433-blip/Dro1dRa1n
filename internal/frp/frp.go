@@ -175,10 +175,20 @@ func SamsungFRP(r *adb.Runner, waitTimeout time.Duration) error {
 }
 
 // XiaomiMiCloud runs the documented ADB-side sequence for Xiaomi account
-// state work (device in sideload/recovery ADB mode).
-func XiaomiMiCloud(r *adb.Runner, serial string) error {
+// state work. In "device" state it runs the settings clear sequence; in
+// "sideload" state adb shell is unavailable, so it explains the sideload
+// path honestly instead of running doomed commands.
+func XiaomiMiCloud(r *adb.Runner, serial, state string) error {
 	ui.Header("xiaomi micloud — adb side")
-	ui.Info("Put the phone in recovery ADB sideload mode and connect USB.")
+	if state == "sideload" {
+		ui.Info("device is in sideload mode: adb shell is NOT available here.")
+		ui.Info("the host side can only:  adb -s " + serial + " sideload <package.zip>")
+		ui.Info("dro1drain bundles no bypass zip — sideloading needs a signed package for your model.")
+		ui.Info("for the ADB-shell path instead, boot to system/recovery with ADB enabled and re-run.")
+		ui.Info("related: dro1drain methods show xiaomi-sideload-account")
+		return nil
+	}
+	ui.Info("device in adb mode — running the account-state sequence.")
 	results := ClearADB(r, serial)
 	fmt.Println()
 	if AllOK(results) {

@@ -85,7 +85,7 @@ Commands:
   samsung csc read        read Samsung CSC region code
   samsung debloat list    list disable-able Samsung packages
   samsung debloat run     disable Samsung bloatware (reversible)
-  xiaomi micloud          Xiaomi ADB-side account sequence
+  xiaomi micloud [serial]   Xiaomi account-state sequence (adb or sideload mode)
   reboot <mode>           system|recovery|bootloader|download|edl
   reset [serial]          factory reset via fastboot (asks first)
   shell [serial] [-- cmd] adb shell passthrough
@@ -104,28 +104,47 @@ func needADB() *adb.Runner {
 }
 
 func pickSerial(r *adb.Runner, args []string) string {
+	serial, _ := pickSerialStates(r, args, "device")
+	return serial
+}
+
+// pickSerialStates picks a target serial from args or attached devices,
+// accepting any of the given adb states. It returns the serial and its state.
+func pickSerialStates(r *adb.Runner, args []string, states ...string) (string, string) {
+	want := map[string]bool{}
+	for _, s := range states {
+		want[s] = true
+	}
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
-		return args[0]
+		out, err := r.Run("", "devices")
+		if err != nil {
+			ui.Fatal(err.Error())
+		}
+		for _, d := range adb.ParseDevices(out) {
+			if d.Serial == args[0] && want[d.State] {
+				return d.Serial, d.State
+			}
+		}
+		ui.Fatal(fmt.Sprintf("device %q not in an acceptable state (%s) — run: dro1drain devices", args[0], strings.Join(states, "/")))
 	}
 	out, err := r.Run("", "devices")
 	if err != nil {
 		ui.Fatal(err.Error())
 	}
-	devs := adb.ParseDevices(out)
 	var ok []adb.Device
-	for _, d := range devs {
-		if d.State == "device" {
+	for _, d := range adb.ParseDevices(out) {
+		if want[d.State] {
 			ok = append(ok, d)
 		}
 	}
 	if len(ok) == 0 {
-		ui.Fatal("no authorized adb devices — run: dro1drain devices")
+		ui.Fatal(fmt.Sprintf("no adb devices in state %s — run: dro1drain devices", strings.Join(states, "/")))
 	}
 	if len(ok) == 1 {
-		return ok[0].Serial
+		return ok[0].Serial, ok[0].State
 	}
 	ui.Fatal("multiple devices; pass a serial explicitly")
-	return ""
+	return "", ""
 }
 
 func cmdDevices() error {
@@ -326,9 +345,16 @@ func cmdSamsung(args []string) error {
 }
 
 func cmdSamsungCSC(args []string) error {
-	r := needADB()
-	serial := pickSerial(r, args)
-	if len(args) == 0 || args[0] == "read" {
+	// split subcommand from an optional trailing serial
+	sub := "read"
+	rest := args
+	if len(rest) > 0 && (rest[0] == "read" || rest[0] == "set") {
+		sub = rest[0]
+		rest = rest[1:]
+	}
+	if sub == "read" {
+		r := needADB()
+		serial := pickSerial(r, rest)
 		out, err := r.Run(serial, "shell", "getprop", "ro.csc.sales_code")
 		if err != nil {
 			return err
@@ -345,34 +371,32 @@ func cmdSamsungCSC(args []string) error {
 		ui.Info("to change: dro1drain samsung csc set <CODE>  (guided, confirms first)")
 		return nil
 	}
-	if args[0] == "set" {
-		if len(args) < 2 {
-			return fmt.Errorf("usage: dro1drain samsung csc set <CODE>")
-		}
-		code := strings.ToUpper(strings.TrimSpace(args[1]))
-		ui.Warn("CSC change rewrites region config — the phone will factory-reset.")
-		if !ui.Confirm("change CSC to " + code + "?") {
-			ui.Info("cancelled.")
-			return nil
-		}
-		// Documented MTP-path CSC change is device-UI driven; the host side
-		// stages the change request where the build permits it.
-		out, err := r.Run(serial, "shell", "am", "broadcast", "-a",
-			"com.samsung.android.action.CHANGE_CSC", "--es", "csc", code)
-		fmt.Printf("  broadcast result: %s\n", strings.TrimSpace(out))
-		if err != nil {
-			ui.Warn("broadcast not accepted on this build — use the MTP method: dro1drain methods show samsung-csc-change")
-			return nil
-		}
-		ui.Ok("CSC change staged — reboot and confirm in Settings > About.")
+	// sub == "set"
+	if len(rest) < 1 {
+		return fmt.Errorf("usage: dro1drain samsung csc set <CODE> [serial]")
+	}
+	code := strings.ToUpper(strings.TrimSpace(rest[0]))
+	r := needADB()
+	serial := pickSerial(r, rest[1:])
+	ui.Warn("CSC change rewrites region config — the phone will factory-reset.")
+	if !ui.Confirm("change CSC to " + code + "?") {
+		ui.Info("cancelled.")
 		return nil
 	}
-	return fmt.Errorf("usage: dro1drain samsung csc <read|set CODE>")
+	// Documented MTP-path CSC change is device-UI driven; the host side
+	// stages the change request where the build permits it.
+	out, err := r.Run(serial, "shell", "am", "broadcast", "-a",
+		"com.samsung.android.action.CHANGE_CSC", "--es", "csc", code)
+	fmt.Printf("  broadcast result: %s\n", strings.TrimSpace(out))
+	if err != nil {
+		ui.Warn("broadcast not accepted on this build — use the MTP method: dro1drain methods show samsung-csc-change")
+		return nil
+	}
+	ui.Ok("CSC change staged — reboot and confirm in Settings > About.")
+	return nil
 }
 
 func cmdSamsungDebloat(args []string) error {
-	r := needADB()
-	serial := pickSerial(r, args)
 	// Curated, safe-to-disable Samsung packages (reversible via `cmd package install-existing`).
 	pkgs := []string{
 		"com.samsung.android.bixby.agent",
@@ -391,8 +415,10 @@ func cmdSamsungDebloat(args []string) error {
 		"com.samsung.android.spay",
 	}
 	sub := "list"
-	if len(args) > 0 {
-		sub = args[0]
+	rest := args
+	if len(rest) > 0 && (rest[0] == "list" || rest[0] == "run") {
+		sub = rest[0]
+		rest = rest[1:]
 	}
 	ui.Header("samsung debloat")
 	switch sub {
@@ -403,6 +429,8 @@ func cmdSamsungDebloat(args []string) error {
 		ui.Info("run: dro1drain samsung debloat run   (reversible)")
 		return nil
 	case "run":
+		r := needADB()
+		serial := pickSerial(r, rest)
 		if !ui.Confirm(fmt.Sprintf("disable %d packages for user 0?", len(pkgs))) {
 			ui.Info("cancelled.")
 			return nil
@@ -433,8 +461,8 @@ func cmdXiaomi(args []string) error {
 		rest = rest[1:]
 	}
 	r := needADB()
-	serial := pickSerial(r, rest)
-	return frp.XiaomiMiCloud(r, serial)
+	serial, state := pickSerialStates(r, rest, "device", "sideload")
+	return frp.XiaomiMiCloud(r, serial, state)
 }
 
 func cmdReboot(args []string) error {
