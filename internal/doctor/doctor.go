@@ -28,7 +28,7 @@ var tools = []Tool{
 		Hint: map[string]string{
 			"linux":   "sudo apt install android-tools-adb  OR  download platform-tools from developer.android.com",
 			"darwin":  "brew install android-platform-tools",
-			"windows": "install platform-tools (choco install adb) and add to PATH",
+			"windows": "winget install Google.PlatformTools  (adds adb to PATH)",
 		},
 	},
 	{
@@ -38,7 +38,7 @@ var tools = []Tool{
 		Hint: map[string]string{
 			"linux":   "sudo apt install android-tools-fastboot  OR  platform-tools from developer.android.com",
 			"darwin":  "brew install android-platform-tools",
-			"windows": "install platform-tools (choco install adb) and add to PATH",
+			"windows": "winget install Google.PlatformTools  (adds fastboot to PATH)",
 		},
 	},
 	{

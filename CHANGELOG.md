@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased — dependency audit
+
+- Dependency audit: Go side verified fully stdlib-only — clean build with empty
+  GOCACHE and GOPROXY=off, `go vet` and `gofmt` clean.
+- `doctor` Windows hints now say `winget install Google.PlatformTools` (matches
+  the installer); Samsung/USB-driver guidance kept per-OS.
+- `tools/win/install.ps1` now detects a bundled `Drivers\` folder (see
+  `docs/PACKAGING.md`) and offers to install the Samsung USB driver (admin),
+  falling back to a repo/URL pointer when the zip omits it.
+- New `tools/install.sh`: Linux/macOS installer — builds, installs to
+  `~/.local/bin`, checks platform-tools with per-OS hints. Tested end to end.
+- New `internal/doctor/doctor_test.go`: tool-table completeness (every required
+  tool has hints for linux/darwin/windows; hint keys are valid GOOS values;
+  adb+fastboot present), hint actionability, driver-hint coverage.
+- New `docs/PACKAGING.md`: release-zip layout including the Samsung driver.
+- License calls still pending Evan: mtkclient (GPL-3.0) and Heimdall (LGPL) are
+  detected-only, never bundled or shelled out to.
+
 ## Unreleased — v0.2.0 (draft release notes)
 Refinement wave: 19 tests green (was 13), Windows installer, deeper diagnostics.
 

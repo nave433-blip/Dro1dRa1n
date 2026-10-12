@@ -29,10 +29,28 @@ if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
     Write-Host ""
     Write-Host "adb not found. Install Android platform-tools:" -ForegroundColor Yellow
     Write-Host "  winget install Google.PlatformTools"
-    Write-Host "Samsung phones also need the Samsung USB driver:"
-    Write-Host "  (bundled in the repo: android-hacking/Drivers/SAMSUNG-USB-Driver-for-Mobile-Phones.exe)"
 } else {
     Write-Host "adb found: $((adb --version | Select-Object -First 1))"
+}
+
+# Samsung USB driver (Galaxy devices)
+$samsungDriver = Join-Path $PSScriptRoot "Drivers\SAMSUNG-USB-Driver-for-Mobile-Phones.exe"
+if (Test-Path $samsungDriver) {
+    Write-Host ""
+    Write-Host "Samsung USB driver is bundled next to this installer (Drivers\)." -ForegroundColor Yellow
+    Write-Host "Galaxy devices need it; running it requires admin rights."
+    $answer = Read-Host "Install it now? (y/N)"
+    if ($answer -eq "y" -or $answer -eq "Y") {
+        Start-Process -FilePath $samsungDriver -Verb RunAs -Wait
+        Write-Host "Driver installer finished." -ForegroundColor Green
+    } else {
+        Write-Host "Skipped — run Drivers\SAMSUNG-USB-Driver-for-Mobile-Phones.exe yourself when needed."
+    }
+} else {
+    Write-Host ""
+    Write-Host "Samsung phones need the Samsung USB driver (Galaxy devices won't show up without it)." -ForegroundColor Yellow
+    Write-Host "  Get it from this repo: android-hacking/Drivers/SAMSUNG-USB-Driver-for-Mobile-Phones.exe"
+    Write-Host "  (https://github.com/nave433-blip/Dro1dRa1n) or samsung.com"
 }
 
 Write-Host ""

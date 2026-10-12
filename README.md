@@ -16,7 +16,7 @@ Requires Go 1.23+ to build, plus Android platform-tools to talk to devices.
 ```sh
 git clone https://github.com/nave433-blip/Dro1dRa1n.git
 cd Dro1dRa1n
-go build -o dro1drain .
+sh tools/install.sh     # builds, installs to ~/.local/bin, checks platform-tools
 ./dro1drain doctor     # check dependencies, prints install hints
 ```
 
