@@ -26,6 +26,7 @@ type Method struct {
 	Automatable  bool     // dro1drain can automate the host-side steps
 	AutoCmd      string   // dro1drain subcommand that automates it ("" if none)
 	Steps        []string // ordered procedure, our own wording
+	GuidePath    string   // optional path into android-hacking/ bundle (repo-root-relative), e.g. "android-hacking/Bypassing_FRP_Lock/Redmi_9A/readme.md"
 }
 
 // DB is the full knowledge base.
@@ -97,6 +98,7 @@ var DB = []Method{
 		Difficulty:   "easy",
 		Automatable:  true,
 		AutoCmd:      "frp clear-adb",
+		GuidePath:    "android-hacking/Useful_ADB_Commands/readme.md",
 		Steps: []string{
 			"Connect the ADB-authorized device over USB.",
 			"Run: dro1drain frp clear-adb — it clears the FRP provisioning flags via settings/content commands.",
@@ -132,6 +134,7 @@ var DB = []Method{
 		PatchCeiling: "Depends on mtkclient support for the specific SoC.",
 		Requires:     []string{"mtkclient installed (GPL-3.0 — needs Evan's call)", "MediaTek device in BROM mode"},
 		Difficulty:   "hard",
+		GuidePath:    "android-hacking/Bypassing_FRP_Lock/Mediatek.md",
 		Steps: []string{
 			"Power off the phone, hold the BROM key combo, connect USB.",
 			"Run mtkclient to erase the frp partition (see mtkclient docs).",
@@ -207,6 +210,137 @@ var DB = []Method{
 			"Connect with ADB authorized.",
 			"Run: dro1drain samsung debloat list  — shows disable-able packages.",
 			"Run: dro1drain samsung debloat run   — disables them (reversible).",
+		},
+	},
+	{
+		ID:           "redmi-9a-frp",
+		Title:        "Redmi 9A FRP via SD card + QuickShortcutMaker",
+		Category:     "frp",
+		Brands:       []string{"xiaomi", "redmi"},
+		AndroidMin:   10,
+		AndroidMax:   12,
+		PatchCeiling: "Documented on MIUI 12-era builds; newer patches may close the Share-to-Notes path.",
+		Requires:     []string{"microSD card", "second phone or PC with card reader", "QuickShortcutMaker APK"},
+		Difficulty:   "medium",
+		GuidePath:    "android-hacking/Bypassing_FRP_Lock/Redmi_9A/readme.md",
+		Steps: []string{
+			"Copy the QuickShortcutMaker APK onto a microSD card and insert it into the phone.",
+			"Power on, connect to Wi-Fi, tap Add network.",
+			"In the SSID field type random text, long-press, Share to Notes, then share as image and save — this opens Gallery.",
+			"Take any photo, open its details, tap the file path to launch the file manager.",
+			"Browse to the SD card, install and open QuickShortcutMaker.",
+			"Search for Settings, tap Try, then set a new lock screen (PIN/pattern/password) under Security.",
+			"Reboot: at the Google-account prompt, enter the lock screen you just created.",
+		},
+	},
+	{
+		ID:           "samsung-a02s-edl",
+		Title:        "Samsung Galaxy A02s FRP via EDL 9008 + QPST",
+		Category:     "frp",
+		Brands:       []string{"samsung"},
+		AndroidMin:   10,
+		AndroidMax:   12,
+		PatchCeiling: "Hardware-level method; works regardless of patch but needs disassembly.",
+		Requires:     []string{"EDL test-point access (back cover off)", "matching firehose programmer (bundled in guide)", "QPST", "QDLoader HS-USB driver"},
+		Difficulty:   "hard",
+		GuidePath:    "android-hacking/Bypassing_FRP_Lock/Galaxy_A02S/readme.md",
+		Steps: []string{
+			"Factory-reset the phone first if you have not already.",
+			"Power off, remove the back cover and the black plastic shield over the mainboard.",
+			"Short the two EDL test points near the camera module while connecting USB to enter 9008 mode.",
+			"Install the QDLoader HS-USB driver; confirm the 9008 port appears in Device Manager.",
+			"Use QPST with the bundled prog-emmc-firehose-8953-ddr.mbn programmer per the guide to erase the FRP partition.",
+			"Reboot and complete setup.",
+		},
+	},
+	{
+		ID:           "samsung-combination-frp",
+		Title:        "Samsung FRP via combination firmware (Odin)",
+		Category:     "frp",
+		Brands:       []string{"samsung"},
+		AndroidMin:   7,
+		AndroidMax:   12,
+		PatchCeiling: "Needs a combination file whose bootloader version is >= the device's; newer devices lack public combination files.",
+		Requires:     []string{"combination file for the exact model", "Odin", "Samsung USB driver", "full stock firmware for reflash"},
+		Difficulty:   "hard",
+		GuidePath:    "android-hacking/Bypassing_FRP_Lock/Combination-File-Method-(Samsung).md",
+		Steps: []string{
+			"Boot to recovery (volume up + power) and note the bootloader version from the build string.",
+			"Find a combination file for the exact model with bootloader version >= the device's.",
+			"Boot to download mode (volume down + power) and flash the combination file with Odin.",
+			"In the combination firmware: Settings > Developer options > enable OEM unlocking.",
+			"Back in download mode, flash the full original stock firmware.",
+			"Complete setup without the old Google account.",
+		},
+	},
+	{
+		ID:           "oppo-a15-mtk-frp",
+		Title:        "Oppo A15 FRP via MTK bypass + SP Flash Tool",
+		Category:     "frp",
+		Brands:       []string{"oppo"},
+		AndroidMin:   10,
+		AndroidMax:   12,
+		PatchCeiling: "Depends on MTK auth-bypass support for the SoC in use.",
+		Requires:     []string{"MediaTek USB drivers", "SP Flash Tool", "MTK bypass utility"},
+		Difficulty:   "hard",
+		GuidePath:    "android-hacking/Bypassing_FRP_Lock/Oppo_A15_with_MTK_Bypass/readme.md",
+		Steps: []string{
+			"Install the MediaTek USB drivers on the PC.",
+			"Power off the phone; run the MTK auth-bypass utility and connect USB to disable SLA/DAA.",
+			"Open SP Flash Tool and use the format path from the guide screenshots to wipe the FRP partition.",
+			"Reboot; complete setup without the old Google account.",
+		},
+	},
+	{
+		ID:           "redmi-10c-secondspace-frp",
+		Title:        "Redmi 10C FRP via Second Space",
+		Category:     "frp",
+		Brands:       []string{"xiaomi", "redmi"},
+		AndroidMin:   11,
+		AndroidMax:   13,
+		PatchCeiling: "Second Space path documented on MIUI 13-era builds; verify against current patch.",
+		Requires:     []string{"no PC needed"},
+		Difficulty:   "medium",
+		GuidePath:    "android-hacking/Bypassing_FRP_Lock/Redmi_10C_Second_Space/readme.md",
+		Steps: []string{
+			"Follow the guide's Second Space walkthrough to reach a working launcher from the setup wizard.",
+			"From Second Space, open Settings and enable the options the guide lists.",
+			"Switch back / reboot and complete setup without the old Mi/Google account.",
+		},
+	},
+	{
+		ID:           "vivo-edl-unlock",
+		Title:        "Vivo lockscreen removal via EDL mode",
+		Category:     "reset",
+		Brands:       []string{"vivo"},
+		AndroidMin:   10,
+		AndroidMax:   13,
+		PatchCeiling: "Needs the correct EDL programmer for the model.",
+		Requires:     []string{"EDL 9008 access", "matching firehose programmer"},
+		Difficulty:   "hard",
+		GuidePath:    "android-hacking/Forgot_Password/EDL-Mode-Method-(Vivo).md",
+		Steps: []string{
+			"Boot the Vivo phone into EDL 9008 mode.",
+			"Use an EDL tool with the model's programmer per the guide to wipe the lockscreen/config data.",
+			"Reboot; set up the phone fresh.",
+		},
+	},
+	{
+		ID:           "realme-c21y-lockscreen",
+		Title:        "Realme C21Y lockscreen removal (.pac flash)",
+		Category:     "reset",
+		Brands:       []string{"realme"},
+		AndroidMin:   10,
+		AndroidMax:   12,
+		PatchCeiling: "Model-specific PAC file bundled in the guide.",
+		Requires:     []string{"ResearchDownload/SPD tool", "Unisoc drivers", "the C21Y .pac from the guide"},
+		Difficulty:   "hard",
+		GuidePath:    "android-hacking/Forgot_Password/Remove-Lockscreen-Realme-C21Y.md",
+		Steps: []string{
+			"Install the Unisoc/SPD drivers from the bundled Drivers folder.",
+			"Load the guide's C21Y .pac file in ResearchDownload.",
+			"Boot the phone into download mode and flash per the guide screenshots.",
+			"Reboot; the lockscreen is cleared.",
 		},
 	},
 }
@@ -302,6 +436,14 @@ func Validate() []string {
 		}
 		if m.AndroidMin > 0 && m.AndroidMax > 0 && m.AndroidMin > m.AndroidMax {
 			errs = append(errs, fmt.Sprintf("%s: min>max android", m.ID))
+		}
+		if m.GuidePath != "" {
+			if strings.HasPrefix(m.GuidePath, "/") || strings.Contains(m.GuidePath, "..") {
+				errs = append(errs, fmt.Sprintf("%s: bad GuidePath %q", m.ID, m.GuidePath))
+			}
+			if m.Automatable && m.AutoCmd == "" {
+				errs = append(errs, fmt.Sprintf("%s: automatable but no AutoCmd", m.ID))
+			}
 		}
 	}
 	return errs

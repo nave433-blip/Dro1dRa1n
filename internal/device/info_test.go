@@ -26,3 +26,12 @@ func TestSummary(t *testing.T) {
 		t.Error("Summary should mark unknown fields")
 	}
 }
+
+func TestAndroidMajor(t *testing.T) {
+	cases := map[string]int{"13": 13, "12.0": 12, "": 0, "abc": 0, " 14 ": 14}
+	for in, want := range cases {
+		if got := (&Info{Android: in}).AndroidMajor(); got != want {
+			t.Errorf("Android %q: got %d, want %d", in, got, want)
+		}
+	}
+}

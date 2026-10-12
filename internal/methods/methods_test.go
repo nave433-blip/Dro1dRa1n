@@ -1,6 +1,11 @@
 package methods
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"runtime"
+	"testing"
+)
 
 func TestValidate(t *testing.T) {
 	if errs := Validate(); len(errs) > 0 {
@@ -66,5 +71,39 @@ func TestByID(t *testing.T) {
 	}
 	if m := ByID("fastboot-factory-reset"); m == nil || m.Category != "reset" {
 		t.Error("ByID failed for fastboot-factory-reset")
+	}
+}
+
+func TestGuidePathsExist(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	repoRoot := filepath.Join(filepath.Dir(thisFile), "..", "..")
+	for _, m := range DB {
+		if m.GuidePath == "" {
+			continue
+		}
+		full := filepath.Join(repoRoot, filepath.FromSlash(m.GuidePath))
+		if st, err := os.Stat(full); err != nil || st.IsDir() {
+			t.Errorf("%s: GuidePath %q does not resolve to a file", m.ID, m.GuidePath)
+		}
+	}
+}
+
+func TestNewDeviceMethodsMatch(t *testing.T) {
+	// Redmi 9A guide should match xiaomi brand queries.
+	ms := Match("xiaomi", 11)
+	found := false
+	for _, m := range ms {
+		if m.ID == "redmi-9a-frp" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("redmi-9a-frp not matched for xiaomi/android 11")
+	}
+	// A02s EDL method must not match a too-new android version.
+	for _, m := range Match("samsung", 15) {
+		if m.ID == "samsung-a02s-edl" {
+			t.Errorf("samsung-a02s-edl should not match android 15")
+		}
 	}
 }

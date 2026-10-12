@@ -209,12 +209,55 @@ func cmdFRP(args []string) error {
 	}
 }
 
+// detectDevice returns brand + android major from the single connected
+// authorized device, or ("", 0, false) when detection isn't possible.
+func detectDevice() (string, int, bool) {
+	r, err := adb.New()
+	if err != nil {
+		return "", 0, false
+	}
+	out, err := r.Run("", "devices")
+	if err != nil {
+		return "", 0, false
+	}
+	var serial string
+	n := 0
+	for _, d := range adb.ParseDevices(out) {
+		if d.State == "device" {
+			n++
+			serial = d.Serial
+		}
+	}
+	if n != 1 {
+		return "", 0, false
+	}
+	info, err := device.Collect(r, serial)
+	if err != nil {
+		return "", 0, false
+	}
+	if info.BrandKey() == "" && info.AndroidMajor() == 0 {
+		return "", 0, false
+	}
+	return info.BrandKey(), info.AndroidMajor(), true
+}
+
+func itoaOrEmpty(v int) string {
+	if v == 0 {
+		return ""
+	}
+	return strconv.Itoa(v)
+}
+
 func cmdGuide() error {
 	ui.Header("frp guide — method picker")
-	brand := strings.ToLower(ui.Ask("device brand (e.g. samsung, xiaomi, motorola)"))
-	verStr := ui.Ask("android major version (e.g. 13; empty if unknown)")
-	major := 0
-	if verStr != "" {
+	brand, major, auto := detectDevice()
+	var verStr string
+	if auto {
+		verStr = itoaOrEmpty(major)
+		fmt.Printf("auto-detected device: brand=%s android=%s\n\n", orDash(brand), orDash(verStr))
+	} else {
+		brand = strings.ToLower(ui.Ask("device brand (e.g. samsung, xiaomi, motorola)"))
+		verStr = ui.Ask("android major version (e.g. 13; empty if unknown)")
 		if v, err := strconv.Atoi(strings.TrimSpace(verStr)); err == nil {
 			major = v
 		}
@@ -253,6 +296,9 @@ func printMethod(m *methods.Method) {
 		for _, r := range m.Requires {
 			fmt.Println("  -", r)
 		}
+	}
+	if m.GuidePath != "" {
+		fmt.Printf("bundled guide: %s\n", m.GuidePath)
 	}
 	for i, s := range m.Steps {
 		ui.Step(i+1, s)

@@ -3,6 +3,7 @@ package device
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/nave433-blip/Dro1dRa1n/internal/adb"
@@ -56,6 +57,19 @@ func (i *Info) BrandKey() string {
 	return strings.ToLower(strings.TrimSpace(i.Brand))
 }
 
+// AndroidMajor parses the major version from e.g. "13" or "12.0"; 0 = unknown.
+func (i *Info) AndroidMajor() int {
+	rel := strings.TrimSpace(i.Android)
+	if rel == "" {
+		return 0
+	}
+	v, err := strconv.Atoi(strings.SplitN(rel, ".", 2)[0])
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
 // Summary renders a human-readable block.
 func (i *Info) Summary() string {
 	var b strings.Builder
@@ -69,7 +83,13 @@ func (i *Info) Summary() string {
 	row("brand", i.Brand)
 	row("model", i.Model)
 	row("device", i.DeviceName)
-	row("android", i.Android+" (SDK "+i.SDK+")")
+	android := i.Android
+	if android != "" && i.SDK != "" {
+		android += " (SDK " + i.SDK + ")"
+	} else if i.SDK != "" {
+		android = "SDK " + i.SDK
+	}
+	row("android", android)
 	row("sec. patch", i.SecurityPatch)
 	row("build", i.BuildID)
 	row("bootloader", i.Bootloader)

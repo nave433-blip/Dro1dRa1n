@@ -2,9 +2,12 @@
 package doctor
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"runtime"
+	"strings"
+	"time"
 
 	"github.com/nave433-blip/Dro1dRa1n/internal/ui"
 )
@@ -95,7 +98,8 @@ func Report() bool {
 			tag = "optional"
 		}
 		if r.Present {
-			ui.Found(fmt.Sprintf("%-12s %s  [%s]", r.Tool.Binary, r.Tool.Description, tag))
+			ver := toolVersion(r.Tool.Binary)
+			ui.Found(fmt.Sprintf("%-12s %s  [%s]%s", r.Tool.Binary, r.Tool.Description, tag, ver))
 		} else {
 			ui.Missing(fmt.Sprintf("%-12s %s  [%s]", r.Tool.Binary, r.Tool.Description, tag))
 			if hint, found := r.Tool.Hint[runtime.GOOS]; found {
@@ -105,6 +109,9 @@ func Report() bool {
 				ok = false
 			}
 		}
+	}
+	if have("adb") {
+		reportADBServer()
 	}
 	// Windows driver note
 	if runtime.GOOS == "windows" {
@@ -124,6 +131,53 @@ func Report() bool {
 		ui.Warn("missing required dependencies — install the hints above, then re-run.")
 	}
 	return ok
+}
+
+// toolVersion returns a short " (v...)" suffix from "<bin> --version".
+func toolVersion(bin string) string {
+	p, err := exec.LookPath(bin)
+	if err != nil {
+		return ""
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, p, "--version").Output()
+	if err != nil {
+		return ""
+	}
+	line := strings.TrimSpace(strings.SplitN(string(out), "\n", 2)[0])
+	// adb prints "Android Debug Bridge version 1.0.41"; fastboot prints a version line too.
+	if line == "" {
+		return ""
+	}
+	if len(line) > 60 {
+		line = line[:60]
+	}
+	return " — " + line
+}
+
+// reportADBServer checks whether the adb server answers and sees devices.
+func reportADBServer() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "adb", "devices").Output()
+	if err != nil {
+		ui.Warn("adb server not responding — try: adb kill-server && adb start-server")
+		return
+	}
+	n := 0
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "List of") || strings.HasPrefix(line, "*") {
+			continue
+		}
+		n++
+	}
+	if n == 0 {
+		ui.Info("adb server is up, no devices attached.")
+	} else {
+		ui.Ok(fmt.Sprintf("adb server is up, %d device(s) visible.", n))
+	}
 }
 
 // DriverHint returns a one-line driver hint for the current OS.
