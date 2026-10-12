@@ -70,3 +70,7 @@ go test ./...
 ## License
 
 MIT — see `LICENSE`.
+
+## Bundled: android-hacking collection
+
+The `android-hacking/` directory is Evan's Android_Hacking repo merged in whole: device-specific FRP bypass guides (Redmi, Oppo, Realme, Vivo, Xperia...), lockscreen-removal guides, USB driver packs (Samsung, QDLoader, Unisoc/SPRD), Windows flash tools (Odin, SP Flash Tool, QPST, ResearchDownload), Magisk modules, build.prop tweaks, modded APKs, and a useful-ADB-commands reference. It backs the `methods` knowledge base with real-world procedures and files.
