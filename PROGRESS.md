@@ -25,4 +25,4 @@ Rebuilding as a real, functional Android FRP/repair toolkit in Go (stdlib-only).
 - Round 2: methods DB GuidePath field wired to android-hacking/ bundle; +7 device-specific methods (Redmi 9A, A02s EDL, Samsung combination, Oppo A15 MTK, Redmi 10C Second Space, Vivo EDL, Realme C21Y); Validate() checks; GuidePath-existence test.
 - Round 3: `frp guide` auto-detects brand/Android from the connected device; doctor reports tool versions + adb server state; device.AndroidMajor(); Summary() cosmetic fix.
 - Round 4: fixed real bugs — `samsung csc read`/`debloat list` treated subcommands as serials; `xiaomi micloud` now accepts sideload-state devices and explains sideload limits instead of running doomed shell commands; pickSerial validates serials against attached devices.
-- Binaries rebuilt (windows exe verified PE32+). Tests: 20 passing (was 13).
+- Binaries rebuilt (windows exe verified PE32+). Tests: 19 passing (was 13).
