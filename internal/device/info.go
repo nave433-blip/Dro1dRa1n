@@ -25,6 +25,10 @@ type Info struct {
 	Bootloader    string // ro.boot.bootloader
 	VerifiedBoot  string // ro.boot.verifiedbootstate
 	FRPPst        string // ro.frp.pst (when exposed)
+	OEMUnlock     string // sys.oem_unlock_allowed (1 = unlocking allowed)
+	KnoxWarranty  string // ro.boot.warranty_bit (0 = Knox intact, 1 = tripped)
+	AntiRollback  string // ro.build.version.anti (Xiaomi anti-rollback index)
+	FlashLocked   string // ro.boot.flash.locked (1 = bootloader locked)
 }
 
 // Collect gathers Info for the given serial using an adb Runner.
@@ -49,6 +53,10 @@ func Collect(r *adb.Runner, serial string) (*Info, error) {
 		Bootloader:    p["ro.boot.bootloader"],
 		VerifiedBoot:  p["ro.boot.verifiedbootstate"],
 		FRPPst:        p["ro.frp.pst"],
+		OEMUnlock:     p["sys.oem_unlock_allowed"],
+		KnoxWarranty:  p["ro.boot.warranty_bit"],
+		AntiRollback:  p["ro.build.version.anti"],
+		FlashLocked:   p["ro.boot.flash.locked"],
 	}, nil
 }
 
@@ -94,5 +102,35 @@ func (i *Info) Summary() string {
 	row("build", i.BuildID)
 	row("bootloader", i.Bootloader)
 	row("verified boot", i.VerifiedBoot)
+	if i.OEMUnlock != "" {
+		v := i.OEMUnlock
+		if v == "1" {
+			v = "1 (OEM unlocking allowed)"
+		} else if v == "0" {
+			v = "0 (OEM unlocking NOT allowed)"
+		}
+		row("oem unlock", v)
+	}
+	if i.FlashLocked != "" {
+		v := i.FlashLocked
+		if v == "1" {
+			v = "1 (bootloader LOCKED)"
+		} else if v == "0" {
+			v = "0 (bootloader UNLOCKED)"
+		}
+		row("flash lock", v)
+	}
+	if i.KnoxWarranty != "" {
+		v := i.KnoxWarranty
+		if v == "0" {
+			v = "0 (Knox intact)"
+		} else if v == "1" {
+			v = "1 (Knox TRIPPED — warranty void)"
+		}
+		row("knox warranty", v)
+	}
+	if i.AntiRollback != "" {
+		row("anti-rollback", i.AntiRollback)
+	}
 	return b.String()
 }

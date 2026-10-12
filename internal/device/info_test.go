@@ -35,3 +35,20 @@ func TestAndroidMajor(t *testing.T) {
 		}
 	}
 }
+
+func TestSummarySecurityRows(t *testing.T) {
+	i := &Info{Serial: "X", Brand: "samsung", OEMUnlock: "1", FlashLocked: "0", KnoxWarranty: "1", AntiRollback: "2"}
+	s := i.Summary()
+	for _, want := range []string{"OEM unlocking allowed", "bootloader UNLOCKED", "Knox TRIPPED", "anti-rollback:  2"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("summary missing %q\n%s", want, s)
+		}
+	}
+	// empty security props -> no rows, no "(unknown)" noise for them
+	s2 := (&Info{Serial: "Y"}).Summary()
+	for _, notWant := range []string{"oem unlock", "knox warranty", "anti-rollback"} {
+		if strings.Contains(s2, notWant) {
+			t.Errorf("summary should omit empty %q", notWant)
+		}
+	}
+}
