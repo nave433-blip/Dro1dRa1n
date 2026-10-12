@@ -1,8 +1,11 @@
 package adb
 
 import (
+	"os"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseDevices(t *testing.T) {
@@ -58,5 +61,41 @@ not-a-prop-line
 	}
 	if !reflect.DeepEqual(len(props), 5) {
 		t.Errorf("expected 5 props, got %d", len(props))
+	}
+}
+
+func TestRunTimeout(t *testing.T) {
+	dir := t.TempDir()
+	script := dir + "/slowadb"
+	os.WriteFile(script, []byte("#!/bin/sh\nexec sleep 30\n"), 0755)
+	r := &Runner{Bin: script, Timeout: 200 * time.Millisecond}
+	_, err := r.Run("", "devices")
+	if err == nil || !strings.Contains(err.Error(), "timed out") {
+		t.Fatalf("expected timeout error, got %v", err)
+	}
+}
+
+func TestWaitForSerialFinds(t *testing.T) {
+	dir := t.TempDir()
+	script := dir + "/fakeadb"
+	os.WriteFile(script, []byte("#!/bin/sh\necho 'List of devices attached'\necho 'FAKE123\tdevice'\n"), 0755)
+	r := &Runner{Bin: script, Timeout: 5 * time.Second}
+	serial, err := r.WaitForSerial("", 3*time.Second)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if serial != "FAKE123" {
+		t.Fatalf("expected FAKE123, got %q", serial)
+	}
+}
+
+func TestWaitForSerialTimeout(t *testing.T) {
+	dir := t.TempDir()
+	script := dir + "/emptyadb"
+	os.WriteFile(script, []byte("#!/bin/sh\necho 'List of devices attached'\n"), 0755)
+	r := &Runner{Bin: script, Timeout: 5 * time.Second}
+	_, err := r.WaitForSerial("NOPE", 400*time.Millisecond)
+	if err == nil || !strings.Contains(err.Error(), "NOPE") {
+		t.Fatalf("expected serial-specific timeout error, got %v", err)
 	}
 }

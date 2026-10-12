@@ -157,24 +157,11 @@ func SamsungFRP(r *adb.Runner, waitTimeout time.Duration) error {
 	ui.Header("samsung frp — test-mode method")
 	ui.Info("On the phone: open Emergency call and dial *#0*# (test mode), then plug in USB.")
 	ui.Info("Waiting for the device...")
-	if err := r.WaitForDevice(waitTimeout); err != nil {
+	serial, err := r.WaitForSerial("", waitTimeout)
+	if err != nil {
 		return err
 	}
 	ui.Ok("device detected, ADB channel up.")
-
-	// Identify which serial came up.
-	out, _ := r.Run("", "devices")
-	devs := adb.ParseDevices(out)
-	var serial string
-	for _, d := range devs {
-		if d.State == "device" {
-			serial = d.Serial
-			break
-		}
-	}
-	if serial == "" {
-		return fmt.Errorf("no authorized device — tap Allow on the phone if prompted")
-	}
 	ui.Info("target: " + serial)
 	results := ClearADB(r, serial)
 	fmt.Println()

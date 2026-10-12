@@ -3,6 +3,7 @@ package fastboot
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -15,29 +16,29 @@ func Has() bool {
 	return err == nil
 }
 
-// Run executes: fastboot [-s serial] args...
+// Run executes: fastboot [-s serial] args..., bounded by a 60s timeout.
+// The timeout kills the process (the old goroutine version leaked it).
 func Run(serial string, args ...string) (string, error) {
 	full := []string{}
 	if serial != "" {
 		full = append(full, "-s", serial)
 	}
 	full = append(full, args...)
-	cmd := exec.Command("fastboot", full...)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "fastboot", full...)
 	var out, errb bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errb
-	done := make(chan error, 1)
-	go func() { done <- cmd.Run() }()
-	select {
-	case err := <-done:
-		combined := out.String() + errb.String() // fastboot logs to stderr
-		if err != nil {
-			return combined, fmt.Errorf("fastboot %s: %v", strings.Join(args, " "), err)
-		}
-		return combined, nil
-	case <-time.After(60 * time.Second):
-		return "", fmt.Errorf("fastboot %s: timed out", strings.Join(args, " "))
+	err := cmd.Run()
+	combined := out.String() + errb.String() // fastboot logs to stderr
+	if ctx.Err() == context.DeadlineExceeded {
+		return combined, fmt.Errorf("fastboot %s: timed out after 60s", strings.Join(args, " "))
 	}
+	if err != nil {
+		return combined, fmt.Errorf("fastboot %s: %v", strings.Join(args, " "), err)
+	}
+	return combined, nil
 }
 
 // Device is one entry of `fastboot devices`.

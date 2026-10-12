@@ -3,6 +3,7 @@ package adb
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -24,34 +25,27 @@ func New() (*Runner, error) {
 	return &Runner{Bin: p, Timeout: 30 * time.Second}, nil
 }
 
-// Run executes: adb [-s serial] args...
+// Run executes: adb [-s serial] args..., bounded by r.Timeout.
 func (r *Runner) Run(serial string, args ...string) (string, error) {
 	full := []string{}
 	if serial != "" {
 		full = append(full, "-s", serial)
 	}
 	full = append(full, args...)
-	cmd := exec.Command(r.Bin, full...)
+	ctx, cancel := context.WithTimeout(context.Background(), r.Timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, r.Bin, full...)
 	var out, errb bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errb
-	// simple timeout via goroutine-free approach: exec with deadline is not in
-	// stdlib pre-1.19 style; use a timer kill through Start/Wait.
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
-	select {
-	case err := <-done:
-		if err != nil {
-			return out.String(), fmt.Errorf("adb %s: %v: %s", strings.Join(args, " "), err, strings.TrimSpace(errb.String()))
-		}
-		return out.String(), nil
-	case <-time.After(r.Timeout):
-		cmd.Process.Kill()
+	err := cmd.Run()
+	if ctx.Err() == context.DeadlineExceeded {
 		return "", fmt.Errorf("adb %s: timed out after %s", strings.Join(args, " "), r.Timeout)
 	}
+	if err != nil {
+		return out.String(), fmt.Errorf("adb %s: %v: %s", strings.Join(args, " "), err, strings.TrimSpace(errb.String()))
+	}
+	return out.String(), nil
 }
 
 // Device is one entry of `adb devices -l`.
@@ -109,19 +103,36 @@ func ParseGetprop(output string) map[string]string {
 	return props
 }
 
-// WaitForDevice blocks until a device is visible to adb (or timeout).
+// WaitForDevice blocks until any authorized adb device is visible (or timeout).
 func (r *Runner) WaitForDevice(timeout time.Duration) error {
+	_, err := r.WaitForSerial("", timeout)
+	return err
+}
+
+// WaitForSerial blocks until the given serial ("" = any) is in "device" state.
+// It polls with a short backoff so we notice fast plug-ins without hammering.
+func (r *Runner) WaitForSerial(serial string, timeout time.Duration) (string, error) {
 	deadline := time.Now().Add(timeout)
+	interval := 500 * time.Millisecond
 	for time.Now().Before(deadline) {
 		out, err := r.Run("", "devices")
 		if err == nil {
 			for _, d := range ParseDevices(out) {
-				if d.State == "device" {
-					return nil
+				if d.State != "device" {
+					continue
+				}
+				if serial == "" || d.Serial == serial {
+					return d.Serial, nil
 				}
 			}
 		}
-		time.Sleep(2 * time.Second)
+		time.Sleep(interval)
+		if interval < 2*time.Second {
+			interval *= 2
+		}
 	}
-	return fmt.Errorf("no authorized adb device appeared within %s", timeout)
+	if serial == "" {
+		return "", fmt.Errorf("no authorized adb device appeared within %s", timeout)
+	}
+	return "", fmt.Errorf("device %s did not reach authorized state within %s", serial, timeout)
 }
