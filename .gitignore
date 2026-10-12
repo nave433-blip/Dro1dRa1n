@@ -1,0 +1,5 @@
+# Build artifacts (release binaries live in dist/, committed deliberately)
+/dro1drain
+/dro1drain.exe
+*.test
+*.out
